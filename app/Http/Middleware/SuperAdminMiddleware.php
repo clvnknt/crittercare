@@ -14,7 +14,9 @@ class SuperAdminMiddleware
             return $next($request);
         }
 
-        // Redirect to the user dashboard if not a super admin
-        return redirect()->route('user.dashboard'); // Adjust the route name if necessary
+        // Redirect to the user's own dashboard if not a super admin
+        $route = auth()->user()->isAdmin ? 'admins.admin-dashboard' : 'users.user-dashboard';
+
+        return redirect()->route($route);
     }
 }

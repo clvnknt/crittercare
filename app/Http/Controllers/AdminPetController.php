@@ -113,11 +113,17 @@ public function index(Request $request)
 // Show the specified pet for adoption.
 public function view(Pet $pet)
 {
-    $adoptionStatus = $pet->adoptionRequest->status; // Assuming there's a 'status' attribute in AdoptionRequest
+    // Latest adoption request that is still pending or was approved
+    $adoptionRequest = $pet->adoptionRequests()
+        ->whereHas('adoptionStatus', function ($query) {
+            $query->whereIn('status', ['pending', 'approved']);
+        })
+        ->latest()
+        ->first();
 
-    if ($adoptionStatus === 'pending' || $adoptionStatus === 'approved') {
+    if ($adoptionRequest) {
         // Load user and additional user details
-        $user = $pet->adoptionRequest->user;
+        $user = $adoptionRequest->user;
         $additionalUserDetails = $user->additionalDetails;
         return view('admins.pets.view', compact('pet', 'user', 'additionalUserDetails'));
     }

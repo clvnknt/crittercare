@@ -1,66 +1,221 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# CritterCare
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+CritterCare is a web-based animal shelter / pound management system built as a
+thesis project (Angeles University Foundation, 2023–2024). It lets the public
+adopt pets, report missing pets and report animal cases, and gives shelter staff
+tools to manage pets, review adoption requests, monitor adopted pets and export
+PDF reports.
 
-## About Laravel
+- **Stack:** Laravel 10 (PHP 8.1+), MySQL / MariaDB, Blade templates, Bootstrap 5 + jQuery (loaded from CDNs), DomPDF for reports.
+- **Original dev environment:** XAMPP on Windows (PHP 8.2.4, MariaDB 10.4.28).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Scope
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Three roles, stored as two boolean columns on `users`:
 
-## Learning Laravel
+| Role        | `isAdmin` | `isSuperAdmin` | URL prefix | Lands on after login |
+|-------------|-----------|----------------|------------|----------------------|
+| User        | 0         | 0              | `/u`       | `/u/dashboard`       |
+| Admin       | 1         | 0              | `/a`       | `/a/dashboard`       |
+| Super Admin | 1         | 1              | `/s`       | `/s/dashboard`       |
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### User (`/u/...`)
+- Register / log in (email **or** username) / forgot-password via email link.
+- Account settings: personal details, password, additional details (address, occupation, household, valid ID upload).
+- **Adoption:** browse available pets, submit an adoption request with a reason, track or cancel requests, see adopted pets.
+- **Missing pets:** post a missing-pet report with photo, browse others' reports, update the status of your own.
+- **Reports:** file an animal case report (case type, description, photo/video).
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Admin (`/a/...`)
+- **Manage pets:** CRUD pets with photos, mark them up for adoption, export PDF.
+- **Adoption requests:** view, approve or decline, add or edit notes, export PDF. Approving a request sets the pet to `Adopted` and creates a pet-monitoring record.
+- **Pet monitoring:** track adopted pets' condition (Good/Fair/Poor), add notes, stop or re-enable monitoring, export PDF.
+- **Missing pet reports:** review and change status (pending/open/solved/cancelled), export PDF.
+- **Case types:** CRUD the categories used by user reports.
+- **User reports:** review and update status (pending/acknowledged/solved/cancelled), export PDF.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Super Admin (`/s/...`)
+- Dashboard with user/admin counts.
+- Manage users, manage admins, promote users to admin, demote admins. Promotions and demotions are logged.
 
-## Laravel Sponsors
+### Out of scope / abandoned
+- **Pet surrendering** (`/u/pet-surrender*`, `/a/pet-surrenders*`) is marked "DON'T USE" in `routes/web.php`. The code and table are still there.
+- **Feedback** has a controller and table but no routes, model or view.
+- **About Us / Contact Us** routes exist, but their views do not.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+See [`healing.md`](healing.md) for known broken bits.
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+## Project structure
 
-## Contributing
+```
+app/
+  Http/Controllers/
+    Auth/                      Login, Register, ForgotPassword
+    User*, Adoption*, MissingPets*, Reports*, PetSurrender*, AdditionalUserDetails*   user side
+    Admin*                     admin side (one controller per module)
+    SuperAdmin*                super-admin side
+    PDFController              pets PDF export
+  Http/Middleware/
+    UserMiddleware             'user'        – bounces super admins to /s
+    AdminMiddleware            'admin'       – requires isAdmin
+    SuperAdminMiddleware       'super-admin' – requires isSuperAdmin
+  Models/                      User, Pet, AdoptionRequest, AdoptionStatus, MissingPet,
+                               Report, CaseType, PetMonitoring, PetSurrender,
+                               Promotion, Demotion, AdditionalUserDetails, ...
+database/
+  migrations/                  full schema (source of truth)
+  seeders/                     demo data: 1 super admin, 10 admins, 100 users, 200 pets, ...
+resources/views/
+  layouts/                     app.blade.php picks navbar/sidebar by role
+  users/  admins/  super-admins/  auth/  email/
+  index.blade.php              public landing page
+routes/web.php                 every route; grouped by /u, /a, /s
+public/
+  css/ js/                     custom styles and sidebar scripts
+  site-icons/ site-logos/ site-media/   static images
+storage/app/public/            uploaded files (pet photos, valid IDs, report media)
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Data model (main tables)
 
-## Code of Conduct
+```
+users ─┬─ additional_user_details (1:1)
+       ├─ adoption_requests ── adoption_status (1:1, pending/approved/declined/cancelled)
+       │        └─ pets
+       ├─ missing_pets
+       ├─ reports ── case_types
+       ├─ promotions / demotions
+       └─ pet_surrenders (unused)
+pets ── pet_monitoring (created when an adoption is approved)
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Upload locations (disk `public`, served through `public/storage` symlink)
 
-## Security Vulnerabilities
+| What               | Path under `storage/app/public/` |
+|--------------------|----------------------------------|
+| Pet photos         | `media/adoption/`                |
+| Valid IDs          | `media/valid-ids/` (also `valid-ids/` from account settings) |
+| Report / missing-pet images | `media/report/images/`  |
+| Report videos      | `media/report/videos/`           |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## Local setup
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+`vendor/` and `node_modules/` are committed, but reinstall them anyway so they
+match your PHP version. No frontend build step is needed: the views load
+Bootstrap and jQuery from CDNs and never call `@vite`.
+
+### Prerequisites
+
+- PHP **8.1–8.3** (8.2 recommended) with extensions: `pdo_mysql`, `mbstring`, `xml`, `curl`, `zip`, `gd`, `bcmath`, `fileinfo`
+- Composer 2
+- MySQL 8 or MariaDB 10.4+
+
+#### Option A – Windows with XAMPP (original setup)
+1. Install XAMPP with PHP 8.2. Start **Apache** and **MySQL** from the control panel.
+2. Install Composer for Windows and point it at `C:\xampp\php\php.exe`.
+3. Open phpMyAdmin (`http://localhost/phpmyadmin`) and create database `crittercare_db` (collation `utf8mb4_unicode_ci`).
+
+#### Option B – WSL / Ubuntu
+```bash
+sudo add-apt-repository ppa:ondrej/php -y && sudo apt update
+sudo apt install -y php8.2-cli php8.2-mysql php8.2-mbstring php8.2-xml \
+  php8.2-curl php8.2-zip php8.2-gd php8.2-bcmath unzip mariadb-server
+curl -sS https://getcomposer.org/installer | php && sudo mv composer.phar /usr/local/bin/composer
+
+sudo service mariadb start
+sudo mysql -e "CREATE DATABASE crittercare_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE USER 'crittercare'@'localhost' IDENTIFIED BY 'secret';
+  GRANT ALL ON crittercare_db.* TO 'crittercare'@'localhost'; FLUSH PRIVILEGES;"
+```
+
+### Steps (both options)
+
+Run these in order from the project root:
+
+```bash
+# 1. PHP dependencies
+composer install
+
+# 2. Environment file
+cp .env.example .env          # Windows: copy .env.example .env
+php artisan key:generate
+```
+
+3. Edit `.env`:
+   ```dotenv
+   APP_NAME=CritterCare
+   APP_URL=http://127.0.0.1:8000
+
+   DB_DATABASE=crittercare_db
+   DB_USERNAME=root            # or crittercare (Option B)
+   DB_PASSWORD=                # or secret (Option B)
+
+   MAIL_MAILER=log             # forgot-password emails go to storage/logs/laravel.log
+   ```
+
+```bash
+# 4. Schema + demo data
+php artisan migrate --seed
+
+# 5. Make uploads reachable. public/storage is a committed placeholder folder
+#    that blocks the symlink, so delete it first.
+rm -rf public/storage         # Windows: rmdir /s /q public\storage
+php artisan storage:link
+
+# 6. Run
+php artisan serve
+```
+
+Open http://127.0.0.1:8000.
+
+### Demo accounts (created by the seeder, local only)
+
+All seeded accounts use password **`CCPass_2324`**. You can log in with username or email.
+
+| Role        | Username     | Email                               |
+|-------------|--------------|-------------------------------------|
+| Super Admin | `superadmin` | pamandanan.calvinkent@auf.edu.ph    |
+| Admin       | `admin`      | bangsil.ronrusselle@auf.edu.ph      |
+| Admin       | `admin2`…`admin10` | `admin2@auf.edu.ph`…          |
+| User        | `user1`…`user100`  | `user2@auf.edu.ph`… (`user1` = dejesus.jeselaurvic@auf.edu.ph) |
+
+Seeded pets, missing pets and reports have no photos.
+
+### Alternative: import the old SQL dump
+
+A phpMyAdmin dump from 2024-01-26 lives in git history (deleted from the tree in `fb15bd2`).
+It contains the same schema and seed-style data as `migrate --seed`:
+
+```bash
+git show 6e9ef44:crittercare_db.sql > crittercare_db.sql
+mysql -u root crittercare_db < crittercare_db.sql
+```
+
+Prefer `migrate --seed`. Use the dump only if migrations fail.
+
+### Reset everything
+
+```bash
+php artisan migrate:fresh --seed
+php artisan optimize:clear
+```
+
+### Tests
+
+```bash
+php artisan test
+```
+
+Only Laravel's two example tests exist.
+
+---
+
+## Troubleshooting
+
+See [`healing.md`](healing.md).

@@ -121,18 +121,20 @@ Bootstrap and jQuery from CDNs and never call `@vite`.
 2. Install Composer for Windows and point it at `C:\xampp\php\php.exe`.
 3. Open phpMyAdmin (`http://localhost/phpmyadmin`) and create database `crittercare_db` (collation `utf8mb4_unicode_ci`).
 
-#### Option B – WSL / Ubuntu
+#### Option B – WSL / Ubuntu 24.04 (tested 2026-10-03: PHP 8.3.6, MariaDB 10.11)
+Ubuntu 24.04 ships PHP 8.3 and Composer, so no PPA is needed:
 ```bash
-sudo add-apt-repository ppa:ondrej/php -y && sudo apt update
-sudo apt install -y php8.2-cli php8.2-mysql php8.2-mbstring php8.2-xml \
-  php8.2-curl php8.2-zip php8.2-gd php8.2-bcmath unzip mariadb-server
-curl -sS https://getcomposer.org/installer | php && sudo mv composer.phar /usr/local/bin/composer
+sudo apt update
+sudo apt install -y php8.3-cli php8.3-mysql php8.3-mbstring php8.3-xml \
+  php8.3-curl php8.3-zip php8.3-gd php8.3-bcmath unzip mariadb-server composer
 
 sudo service mariadb start
 sudo mysql -e "CREATE DATABASE crittercare_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   CREATE USER 'crittercare'@'localhost' IDENTIFIED BY 'secret';
   GRANT ALL ON crittercare_db.* TO 'crittercare'@'localhost'; FLUSH PRIVILEGES;"
 ```
+
+> On Ubuntu 22.04 or older, add `ppa:ondrej/php` first and use the `php8.2-*` packages.
 
 ### Steps (both options)
 

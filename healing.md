@@ -1,7 +1,9 @@
 # healing.md — CritterCare troubleshooting & known issues
 
-Two parts: **setup errors** (symptom, cause, fix) and **known code bugs** found
-while auditing the repo on 2026-10-03. Nothing in the second list has been fixed yet.
+Two parts: **setup errors** (symptom, cause, fix) and **known code bugs**.
+The bugs were found by auditing the repo and running a smoke test on 2026-10-03
+(Ubuntu 24.04 / WSL2, PHP 8.3.6, MariaDB 10.11). Bugs marked **(verified)**
+were reproduced in that test. None of them has been fixed yet.
 
 ---
 
@@ -71,6 +73,10 @@ Set `MAIL_MAILER=log`. The reset email, including its link, is then written to `
 php artisan optimize:clear
 ```
 
+### `git status` shows `vendor/composer/installed.php` and `vendor/composer/LICENSE` modified after `composer install`
+This is harmless. `vendor/` is committed, so Composer regenerates these files locally.
+Discard the changes with `git checkout -- vendor/composer`, or leave them uncommitted.
+
 ### `php artisan route:cache` fails
 This is expected. See bug B3 below. Do not cache routes until that bug is fixed.
 
@@ -80,12 +86,15 @@ This is expected. See bug B3 below. Do not cache routes until that bug is fixed.
 
 | #  | Where | Problem | Effect |
 |----|-------|---------|--------|
-| B1 | `SuperAdminController::userDistributionChart` (`/s/user-distribution-chart`) | Uses `ConsoleTVs\Charts\Facades\Charts::create(...)`, a v5 API. The installed `consoletvs/charts` v6 has no such facade. | 500 error on that route. The main `/s/dashboard` is fine. |
-| B2 | `Controller::aboutUs` / `contactUs` | Views `about_us` and `contact_us` do not exist. | 500 on `/about-us` and `/contact-us`. |
+| B1 (verified) | `SuperAdminController::userDistributionChart` (`/s/user-distribution-chart`) | Uses `ConsoleTVs\Charts\Facades\Charts::create(...)`, a v5 API. The installed `consoletvs/charts` v6 has no such facade. | 500 error on that route. The main `/s/dashboard` is fine. |
+| B2 (verified) | `Controller::aboutUs` / `contactUs` | Views `about_us` and `contact_us` do not exist. | 500 on `/about-us` and `/contact-us`. |
 | B3 | `routes/web.php` — `/u/getCaseTypes/{type}` | Old string syntax `'ReportsController@getCaseTypes'`, but Laravel 10 has no controller namespace prefix. | 500 on that route. Breaks `route:cache`. |
-| B4 | `SuperAdminMiddleware` | Redirects non-super-admins to route `user.dashboard`, which does not exist (the real name is `users.user-dashboard`). | Users or admins who hit `/s/*` get a 500 instead of a redirect. |
+| B16 (verified) | `AdminPetController::view` (`/a/pets/{pet}`) | Reads `$pet->adoptionRequest->status`, but `Pet` only defines `adoptionRequests()` (plural). Status also lives in `adoption_status`, not on the request. | 500 on the admin view page of **every** pet. |
+| B17 (verified) | `super-admins/manage-users/index.blade.php:85` | Calls `route('getCaseTypes')`. No route has that name (see B3). | 500 on `/s/manage/users`. |
+| B18 (verified) | `generate-adoption-requests-reports.blade.php` | Uses undefined `$totalMissingPets` (copy-pasted from the missing-pets report). | 500 on `/a/admin/adoption-requests/export-pdf`. |
+| B4 (verified) | `SuperAdminMiddleware` | Redirects non-super-admins to route `user.dashboard`, which does not exist (the real name is `users.user-dashboard`). | Users or admins who hit `/s/*` get a 500 instead of a redirect. |
 | B5 | `RedirectIfAuthenticated` / `LoginController::$redirectTo` | Falls back to `route('home')` / `/home`. Neither exists. | Latent. Only `/login` and `/register` use `guest` today, and they are special-cased. Any new guest-only route would error. |
-| B6 | `routes/web.php` — `/pets/export-pdf` | Defined outside any auth group. | Anyone can download the pets PDF without logging in. |
+| B6 (verified) | `routes/web.php` — `/pets/export-pdf` | Defined outside any auth group. | Anyone can download the pets PDF without logging in. |
 | B7 | `routes/web.php` — `missing=pets/own-reports` | Typo: `=` instead of `-`. | The URL is `/u/missing=pets/own-reports`. It works, but looks wrong. |
 | B8 | Views `users/available-pets/view.blade.php:82`, `users/adoptions/approved-adoptions/show-approved.blade.php:22` | Load pet photos from `storage/images/`, but pets are saved to `storage/media/adoption/`. | Broken images in "recommended pets" and on the approved-adoption page. |
 | B9 | `User::isAdmin()` | Method checks `$this->role === 'isAdmin'`, but there is no `role` column. Everything else reads the `isAdmin` attribute directly. | Calling `$user->isAdmin()` (with parentheses) always returns `false`. |
@@ -95,6 +104,10 @@ This is expected. See bug B3 below. Do not cache routes until that bug is fixed.
 | B13 | Duplicate route name `users.change-valid-id` | Defined twice (`/u/users/change-valid-id` and `/u/account-settings/change-valid-id`). | The second definition wins. Harmless, but confusing. |
 | B14 | `.gitignore` | Ignores only `.env`. `vendor/` and `node_modules/` (~9.5k files) are committed. | Huge diffs whenever dependencies change. Consider ignoring both and running `composer install`. |
 | B15 | `users.gender` enum is lowercase (`male`/`female`/`other`); registration validates `Male`/`Female`/`Other` | MySQL enum matching ignores case, so this works. Strict DBs or other drivers may reject it. | Low risk. |
+
+### Smoke test results (2026-10-03)
+These work: logins for all three roles, landing/login/register/forgot pages, every `/u` page tested, adoption request → admin approve → `pet_monitoring` row created, the PDF exports for pets/missing pets/reports/monitoring, and the forgot-password email written to the log.
+These fail: B1, B2, B4, B16, B17, B18.
 
 ### Quick health check after setup
 1. `/` loads the landing page.

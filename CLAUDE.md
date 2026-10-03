@@ -7,7 +7,7 @@ CritterCare: a Laravel 10 thesis project (animal shelter management: adoption, m
 composer install
 cp .env.example .env && php artisan key:generate   # then set DB_DATABASE=crittercare_db, MAIL_MAILER=log
 php artisan migrate:fresh --seed                     # reset DB with demo data (password for all seeded users: CCPass_2324)
-rm -rf public/storage && php artisan storage:link    # public/storage is a committed placeholder dir; must be replaced by the symlink
+php artisan storage:link                             # public/storage symlink (gitignored, never commit it)
 php artisan serve                                    # http://127.0.0.1:8000
 php artisan test                                     # only example tests exist
 php artisan optimize:clear                           # after .env/config/route edits

@@ -47,12 +47,11 @@ This drops all tables.
 Dev dependencies were skipped (`composer install --no-dev`). Run plain `composer install`.
 
 ### `The [public/storage] link already exists.` from `storage:link`
-`public/storage/` is a real folder committed to git (it only holds a `.gitignore`).
-Delete it, then link:
+Something already exists at `public/storage`. Before 2026-10-03 the repo committed a placeholder folder there; it is now gitignored.
+If you check out an older commit, or the link is stale, recreate it:
 ```bash
 rm -rf public/storage && php artisan storage:link
 ```
-Do not commit the deletion unless you also stop tracking that folder.
 
 ### Uploaded images show as broken
 - The `public/storage` symlink is missing. See the previous entry.

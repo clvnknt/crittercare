@@ -165,9 +165,7 @@ php artisan key:generate
 # 4. Schema + demo data
 php artisan migrate --seed
 
-# 5. Make uploads reachable. public/storage is a committed placeholder folder
-#    that blocks the symlink, so delete it first.
-rm -rf public/storage         # Windows: rmdir /s /q public\storage
+# 5. Make uploads reachable (creates the public/storage symlink, which git ignores)
 php artisan storage:link
 
 # 6. Run

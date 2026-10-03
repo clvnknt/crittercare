@@ -6,9 +6,6 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 
 
-// Guest
-use App\Http\Controllers\Controller;
-
 // User
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPetController;
@@ -63,8 +60,6 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])
 ->name('logout');
 
-Route::get('/about-us', [Controller::class, 'aboutUs'])->name('about-us');
-Route::get('/contact-us', [Controller::class, 'contactUs'])->name('contact-us');
 
 Route::get('/pets/export-pdf', [PDFController::class, 'exportPdf'])
 ->name('admins.pets.exportPdf');
@@ -149,7 +144,6 @@ Route::middleware(['auth', 'user'])->prefix('u')->group(function () {
     ->name('users.reports.store');
     Route::get('/reports/{report}', [ReportsController::class, 'showReport'])
     ->name('users.reports.show');
-    Route::get('/getCaseTypes/{type}', 'ReportsController@getCaseTypes');
 
 
     //Pet Surrendering DON'T USE
@@ -278,7 +272,6 @@ Route::middleware(['auth', 'admin'])->prefix('a')->group(function () {
     Route::middleware(['auth', 'super-admin'])->prefix('s')->group(function () {
     // Super Admin Dashboard
     Route::get('/dashboard', [SuperAdminController::class, 'index'])->name('super-admins.dashboard');
-    Route::get('/user-distribution-chart', [SuperAdminController::class, 'userDistributionChart']);
 
     // Manage Users
     Route::get('/manage/users', [SuperAdminUserController::class, 'index'])

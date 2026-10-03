@@ -43,7 +43,6 @@ Three roles, stored as two boolean columns on `users`:
 ### Out of scope / abandoned
 - **Pet surrendering** (`/u/pet-surrender*`, `/a/pet-surrenders*`) is marked "DON'T USE" in `routes/web.php`. The code and table are still there.
 - **Feedback** has a controller and table but no routes, model or view.
-- **About Us / Contact Us** routes exist, but their views do not.
 
 See [`healing.md`](healing.md) for known broken bits.
 

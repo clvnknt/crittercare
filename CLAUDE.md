@@ -12,7 +12,7 @@ php artisan serve                                    # http://127.0.0.1:8000
 php artisan test                                     # only example tests exist
 php artisan optimize:clear                           # after .env/config/route edits
 ```
-Do NOT run `php artisan route:cache`. It fails because of a string-syntax route (healing.md B3).
+Do NOT run `php artisan route:cache`. It fails because of a duplicate route name (healing.md B13). `route:list` works.
 No frontend build: views load Bootstrap 5 and jQuery from CDNs. `npm` is not needed and there is no `vite.config.js`.
 
 ## Architecture

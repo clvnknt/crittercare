@@ -127,9 +127,24 @@ public function approveAdoptionRequest(AdoptionRequest $adoptionRequest)
         $adoptionRequests = AdoptionRequest::with(['user', 'pet', 'adoptionStatus'])
             ->get(); // Fetch all adoption requests
 
+        // Count requests per status, split by pet type
+        $statusCounts = [];
+        foreach (['pending', 'approved', 'declined', 'cancelled'] as $status) {
+            $statusCounts[$status] = ['Dog' => 0, 'Cat' => 0];
+        }
+        foreach ($adoptionRequests as $adoptionRequest) {
+            $status = optional($adoptionRequest->adoptionStatus)->status;
+            $type = optional($adoptionRequest->pet)->type;
+            if (isset($statusCounts[$status][$type])) {
+                $statusCounts[$status][$type]++;
+            }
+        }
+
         // Pass the adoption requests data to the PDF view
         $data = [
             'adoptionRequests' => $adoptionRequests,
+            'totalAdoptionRequests' => $adoptionRequests->count(),
+            'statusCounts' => $statusCounts,
         ];
 
         // Generate the PDF using the adoption requests data
